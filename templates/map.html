@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Josawa Logistics — Live Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="/static/css/dashboard.css">
+<style>
+  #map { position: absolute; top: 0; bottom: 0; right: 0; left: 220px; }
+  .map-legend { position: absolute; z-index: 1000; bottom: 18px; left: 240px; background: rgba(13,17,23,.9);
+    border: 1px solid #1c2530; border-radius: 8px; padding: 10px 14px; font-size: 12px; color: #cfe; }
+  .map-legend .dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .map-overlay { position: absolute; z-index: 1000; top: 14px; left: 240px; background: rgba(13,17,23,.9);
+    border: 1px solid #1c2530; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #9fb0c0; }
+  .map-overlay b { color: #0d9488; }
+  .leaflet-popup-content { font-family: 'Segoe UI', system-ui, sans-serif; font-size: 13px; }
+  .ship-pop b { color: #0d9488; }
+</style>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">
+    <img src="/static/img/josawa_logo.png" alt="Josawa Logistics" class="brand-logo">
+    <div class="brand-sub">Global Command Centre</div>
+  </div>
+  <a class="nav-item active" onclick="goSection('map')">🗺️ Live Map</a>
+  <a class="nav-item" onclick="goSection('dashboard')">📊 Dashboard</a>
+  <a class="nav-item" onclick="goSection('shipments')">📦 Shipments</a>
+  <a class="nav-item" onclick="goSection('assets')">📍 My Assets</a>
+  <a class="nav-item" onclick="goSection('tracker')">✈️ Tracker</a>
+  <a class="nav-item" onclick="goSection('digest')">📧 Digest &amp; Alerts</a>
+  <a class="nav-item" onclick="goSection('consolidator')">🗂️ Consolidator</a>
+  <a class="nav-item" onclick="goSection('navis')">🚢 Port Migration</a>
+  <a class="nav-item" onclick="goSection('charts')">📈 Progress</a>
+  <a class="nav-item" onclick="goSection('suppliers')">🏭 Suppliers</a>
+  <a class="nav-item" onclick="goSection('documents')">📁 Documents</a>
+</aside>
+<script>
+  // Unified navigation: map page shares the same sidebar as the dashboard.
+  // For any section other than the live map, jump back to the dashboard and open it.
+  function goSection(name) {
+    if (name === 'map') return;            // already here
+    if (location.pathname === '/') {
+      switchSection(name);                  // SPA switch if already on dashboard
+    } else {
+      location.href = '/#' + name;          // land on dashboard, hash switches it
+    }
+  }
+</script>
+<div class="map-overlay" id="map-overlay">Loading live data…</div>
+<div id="map"></div>
+<div class="map-legend">
+  <div><span style="color:#0d9488;font-size:16px">🚢</span> Vessel / shipment (Josawa fleet)</div>
+  <div><span style="color:#ffd400;font-size:16px">✈️</span> Live flight (OpenSky)</div>
+  <div><span style="color:#f5a623;font-size:16px">●</span> Your tracked asset</div>
+  <div><span style="color:#6b7c8c;font-size:16px">•</span> SA destination port</div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="/static/js/map.js"></script>
+<footer class="app-footer">Built and Designed by Kamil Meer Motala</footer>
+</body>
+</html>
