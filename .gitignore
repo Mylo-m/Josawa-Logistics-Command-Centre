@@ -1,0 +1,10 @@
+# AlphaTech Logistics Management — local data & secrets (do NOT commit)
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.db-journal
+__pycache__/
+*.pyc
+.env
+.DS_Store
+*.log
