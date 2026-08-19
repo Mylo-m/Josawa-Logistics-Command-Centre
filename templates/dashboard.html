@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Josawa Logistics — Global Command Centre</title>
+<link rel="stylesheet" href="/static/css/dashboard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<aside class="sidebar">
+  <div class="brand">
+    <img src="/static/img/josawa_logo.png" alt="Josawa Logistics" class="brand-logo">
+    <div class="brand-sub">Global Command Centre</div>
+  </div>
+  <a class="nav-item active" data-section="dashboard" onclick="switchSection('dashboard')">📊 Dashboard</a>
+  <a class="nav-item" data-section="map" onclick="if(location.pathname!=='/map') location.href='/map'">🗺️ Live Map</a>
+  <a class="nav-item" data-section="shipments" onclick="switchSection('shipments')">📦 Shipments</a>
+  <a class="nav-item" data-section="assets" onclick="switchSection('assets')">📍 My Assets</a>
+  <a class="nav-item" data-section="tracker" onclick="switchSection('tracker')">✈️ Tracker</a>
+  <a class="nav-item" data-section="digest" onclick="switchSection('digest')">📧 Digest &amp; Alerts</a>
+  <a class="nav-item" data-section="consolidator" onclick="switchSection('consolidator')">🗂️ Consolidator</a>
+  <a class="nav-item" data-section="navis" onclick="switchSection('navis')">🚢 Port Migration</a>
+  <a class="nav-item" data-section="charts" onclick="switchSection('charts')">📈 Progress</a>
+  <a class="nav-item" data-section="suppliers" onclick="switchSection('suppliers')">🏭 Suppliers</a>
+  <a class="nav-item" data-section="documents" onclick="switchSection('documents')">📁 Documents</a>
+</aside>
+<div class="bell" id="bell" onclick="toggleNotif()" title="Alerts">🔔 <span id="bell-count" class="bell-count">0</span></div>
+<div id="notif-dropdown" class="notif-dropdown" style="display:none"></div>
+<main>
+  <section id="dashboard" class="section active">
+    <h1>📊 Dashboard</h1>
+    <p class="app-tagline">Track every shipment — pipeline stage, clearing status, flags, booking slots and live position — in one place.</p>
+    <div id="stats" class="stats-grid"></div>
+    <h2 style="margin-top:24px;color:#0d9488">🚨 Needs attention</h2>
+    <div id="attention" class="attention-grid"></div>
+    <h2 style="margin-top:24px;color:#f5a623">🟠 Alerts &amp; Updates</h2>
+    <p class="muted" style="margin-top:-4px">SAPS stops, clearance needs, flight &amp; shipment delays. Click an alert to expand forwarder, waybill &amp; supplier.</p>
+    <div id="alerts-panel" class="alerts-panel"></div>
+    <h2 style="margin-top:24px;color:#ed1d24">📌 Follow-up needed</h2>
+    <p class="muted" style="margin-top:-4px">Shipments that are not ready yet, with the date you need to follow up.</p>
+    <div id="followup" class="followup-grid"></div>
+    <p class="muted" style="margin-top:18px">Live flight positions stream from OpenSky (no API key). Set <code>AISSTREAM_KEY</code> for live AIS vessel positions. Type a flight or shipping number in the Tracker tab to pull live data.</p>
+    <p class="lan-hint" id="lan-hint">Share on your network: …</p>
+    <p class="muted" id="updated-stamp" style="margin-top:8px"></p>
+  </section>
+
+  <section id="shipments" class="section">
+    <h1>📦 Shipments <span class="muted" style="font-size:14px">— clearing &amp; forwarding pipeline</span></h1>
+    <p class="how-to">💡 <b>How to use:</b> add each import (ref, supplier, carrier, ETA, forwarder). Click <b>📂 details</b> on any row to add <b>flags</b> (Customs Hold, Missing Docs…), set the <b>harbour/flight booking slot</b>, and keep <b>notes</b>. The dashboard flags anything overdue or due.</p>
+    <div class="add-form">
+      <input id="shp-ref" placeholder="Ref (e.g. ALP-2608-01)" style="max-width:150px">
+      <input id="shp-supplier" placeholder="Supplier" oninput="crmSuggest('shp-supplier','supplier')" autocomplete="off">
+      <div id="crm-supplier-list" class="crm-list"></div>
+      <input id="shp-desc" placeholder="Description" style="max-width:220px">
+      <select id="shp-mode"><option value="sea">Sea</option><option value="air">Air</option></select>
+      <input id="shp-carrier" placeholder="Carrier / vessel">
+      <input id="shp-bl" placeholder="AWB/B/L" style="max-width:140px">
+      <input id="shp-container" placeholder="Container" style="max-width:140px">
+      <input id="shp-ci" placeholder="Commercial Inv #" style="max-width:130px">
+      <input id="shp-po" placeholder="PO number" style="max-width:120px">
+      <input id="shp-freight" placeholder="Freight file #" style="max-width:120px">
+      <input id="shp-airport" placeholder="Airport" style="max-width:120px">
+      <input id="shp-port" placeholder="Port" style="max-width:120px">
+      <input id="shp-berth" placeholder="Berth" style="max-width:90px">
+      <input id="shp-ship" placeholder="Vessel/Ship" style="max-width:140px">
+      <input id="shp-stock" placeholder="Incoming stock (item|qty per line)" style="max-width:260px">
+      <select id="shp-dest">
+        <option value="DURBAN">Durban</option><option value="CPT">Cape Town</option>
+        <option value="JNB">Joburg</option><option value="PLZ">PE</option><option value="DUR">Durban Alt</option>
+      </select>
+      <input id="shp-fwd" placeholder="Forwarder" oninput="crmSuggest('shp-fwd','forwarder')" autocomplete="off">
+      <div id="crm-forwarder-list" class="crm-list"></div>
+      <input id="shp-contact" placeholder="Contact email" style="max-width:180px">
+      <input id="shp-eta" type="datetime-local" title="ETA">
+      <button onclick="addShipment()">+ Add</button>
+      <button onclick="showImport()">⬆ Import CSV</button>
+      <a class="btn-link" href="/api/shipments/export/xlsx" target="_blank">⬇ Export Excel</a>
+      <button onclick="document.getElementById('xlsx-file').click()">⬆ Import Excel</button>
+      <input id="xlsx-file" type="file" accept=".xlsx" style="display:none" onchange="importXlsx()">
+    </div>
+    <div id="import-box" class="import-box" style="display:none">
+      <p class="muted">Paste a spreadsheet (CSV with headers). Columns auto-mapped: reference, supplier, description, mode, carrier, awb/bl, container, destination, forwarder, contact/email, eta. Duplicates skipped.</p>
+      <textarea id="csv-text" placeholder="reference,supplier,carrier,eta,destination,forwarder&#10;ALP-2608-01,TASCAM,Maersk Incer,2026-08-10 06:00,DURBAN,APT Terminals" rows="6"></textarea>
+      <div style="margin-top:8px"><button onclick="importCsv()">Import</button> <span id="import-result" class="muted"></span></div>
+    </div>
+    <div id="ship-filters" class="ship-filters"></div>
+    <div id="shipments-list"></div>
+  </section>
+
+  <section id="assets" class="section">
+    <h1>📍 My Tracked Assets</h1>
+    <div class="add-form">
+      <select id="asset-kind">
+        <option value="ship">Ship</option>
+        <option value="flight">Flight</option>
+      </select>
+      <input id="asset-id" placeholder="Ship name or flight number (e.g. MAERSK HAMBURG, BA123)">
+      <select id="asset-dest">
+        <option value="">Auto</option>
+        <option value="DURBAN">Durban Port</option>
+        <option value="JNB">Johannesburg</option>
+        <option value="CPT">Cape Town</option>
+        <option value="DUR">Durban</option>
+        <option value="PLZ">Port Elizabeth</option>
+      </select>
+      <button onclick="addAsset()">Add</button>
+      <button onclick="refreshAssets()">↻ Refresh</button>
+    </div>
+    <div id="assets-list" class="assets-list"></div>
+  </section>
+
+  <section id="tracker" class="section">
+    <h1>✈️ Tracker</h1>
+    <div class="add-form">
+      <input id="flight-no" placeholder="Flight number (e.g. BA123, SAA326)">
+      <button onclick="trackFlight()">Track Flight (live)</button>
+      <input id="ship-q" placeholder="Vessel name / company / IMO (e.g. MAERSK, Safmarine)">
+      <button onclick="trackShipping()">Track Shipping</button>
+    </div>
+    <div id="track-result"></div>
+  </section>
+
+  <section id="digest" class="section">
+    <h1>📧 Digest &amp; Alerts</h1>
+    <div class="add-form">
+      <button onclick="sendDigest()">📤 Send morning digest now</button>
+      <button onclick="loadSettings()">⚙ Settings</button>
+    </div>
+    <pre id="digest-preview" class="digest-pre">Loading…</pre>
+    <div id="settings-box" class="import-box" style="display:none">
+      <h3>Settings</h3>
+      <label><input type="checkbox" id="set-digest_enabled"> Enable daily morning digest</label><br>
+      <label>Digest email: <input id="set-digest_email" placeholder="her@josawa.co.za"></label><br>
+      <label>Send at hour (0-23): <input id="set-digest_hour" type="number" min="0" max="23" style="width:60px"></label><br>
+      <label>SMTP host: <input id="set-smtp_host" placeholder="smtp.gmail.com"></label><br>
+      <label>SMTP user: <input id="set-smtp_user" placeholder="her@josawa.co.za"></label><br>
+      <label>Alerts enabled: <input type="checkbox" id="set-alerts_enabled"></label><br>
+      <p class="muted">SMTP password is read from env <code>SMTP_PASS</code> (never stored). Without SMTP the digest is saved in-app and shown in the alert bell.</p>
+      <button onclick="saveSettings()">Save</button> <span id="settings-result" class="muted"></span>
+    </div>
+  </section>
+
+  <!-- CONSOLIDATOR SECTION -->
+  <section id="consolidator" class="section">
+    <h1>🗂️ Consolidator <span class="muted" style="font-size:14px">— group-clearing opportunities</span></h1>
+    <p class="how-to">💡 Shipments sharing the same <b>forwarder</b> can be bundled for group clearing. This view groups your real shipments by forwarder and flags consolidatable batches.</p>
+    <div id="cons-stats" class="stats-grid"></div>
+    <div class="card">
+      <div class="card-header"><h3>Forwarder Groups</h3></div>
+      <div class="card-body">
+        <table class="data-table">
+          <thead><tr><th>Forwarder</th><th>Shipments</th><th>Mode</th><th>Consolidatable</th><th>References</th></tr></thead>
+          <tbody id="consTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- NAVIS / PORT MIGRATION SECTION -->
+  <section id="navis" class="section">
+    <h1>🚢 Port Systems Migration Tracker</h1>
+    <p class="how-to">💡 Tracks the rollout of terminal operating systems at your clearing ports. Configure the target go-live date and terminal list in <b>Settings</b> (keys <code>navis_target_date</code>, <code>navis_terminals</code>). No demo data is shown.</p>
+    <div id="navis-stats" class="stats-grid"></div>
+    <div class="card">
+      <div class="card-header"><h3>Terminal Migration Status</h3></div>
+      <div class="card-body" id="navisTerminals"></div>
+    </div>
+  </section>
+
+  <!-- PROGRESS CHARTS SECTION -->
+  <section id="charts" class="section">
+    <h1>📈 Progress</h1>
+    <p class="how-to">💡 Live breakdowns of your shipment pipeline and transport mix (real data only).</p>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-header"><h3>Pipeline Stage</h3></div>
+        <div class="card-body"><canvas id="stageChart" height="170"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Air vs Sea</h3></div>
+        <div class="card-body"><canvas id="modeChart" height="170"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Attention Buckets</h3></div>
+        <div class="card-body"><canvas id="attentionChart" height="170"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUPPLIERS SECTION -->
+  <section id="suppliers" class="section">
+    <h1>🏭 Suppliers</h1>
+    <p class="how-to">💡 Master list of suppliers (placeholder data for now — edit or add real suppliers). Click <b>📂 details</b> to see contact info, and link shipments by name.</p>
+    <div class="add-form">
+      <input id="sup-name" placeholder="Supplier name" style="max-width:200px">
+      <input id="sup-contact" placeholder="Contact name" style="max-width:160px">
+      <input id="sup-email" placeholder="Email" style="max-width:200px">
+      <input id="sup-phone" placeholder="Phone" style="max-width:150px">
+      <input id="sup-city" placeholder="City" style="max-width:130px">
+      <input id="sup-country" placeholder="Country" style="max-width:130px">
+      <input id="sup-products" placeholder="Products" style="max-width:200px">
+      <button onclick="addSupplier()">+ Add</button>
+    </div>
+    <div id="suppliers-list"></div>
+  </section>
+
+  <!-- DOCUMENTS SECTION -->
+  <section id="documents" class="section">
+    <h1>📁 Documents</h1>
+    <p class="how-to">💡 Upload and organise documents <b>per shipment</b>. Pick a shipment, choose a document type, and upload. Types include Proforma Invoice, Supplier PO, Commercial Invoice, Packing List, HAWB, MAWB, SAD500/501/507, Customs Worksheet, EDI/Release Doc, Clearing Instruction and POA.</p>
+    <div class="add-form">
+      <select id="doc-ship"></select>
+      <select id="doc-type"></select>
+      <input id="doc-file" type="file">
+      <button onclick="uploadDoc()">⬆ Upload</button>
+      <span id="doc-result" class="muted"></span>
+    </div>
+    <div id="documents-list"></div>
+  </section>
+</main>
+<script src="/static/js/dashboard.js"></script>
+<script src="/static/js/console_extra.js"></script>
+<footer class="app-footer">Built and Designed by Kamil Meer Motala</footer>
+</body>
+</html>
